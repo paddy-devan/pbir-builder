@@ -106,6 +106,52 @@ def _new_resource_name(path: Path) -> str:
     return f"{stem}{secrets.randbelow(10**16)}{path.suffix}"
 
 
+@dataclass(frozen=True)
+class FieldRef:
+    entity: str
+    property: str
+
+
+@dataclass(frozen=True)
+class MeasureRef:
+    entity: str
+    property: str
+
+
+@dataclass(frozen=True)
+class VisualBinding:
+    """Base type for future visual binding models."""
+
+
+@dataclass(frozen=True)
+class CartesianBinding(VisualBinding):
+    category: FieldRef | None = None
+    values: tuple[MeasureRef, ...] = ()
+    series: FieldRef | None = None
+    tooltips: tuple[FieldRef | MeasureRef, ...] = ()
+
+
+@dataclass(frozen=True)
+class SummaryBinding(VisualBinding):
+    value: MeasureRef | None = None
+    target: MeasureRef | None = None
+    trend: FieldRef | None = None
+    tooltips: tuple[FieldRef | MeasureRef, ...] = ()
+
+
+@dataclass(frozen=True)
+class TabularBinding(VisualBinding):
+    rows: tuple[FieldRef, ...] = ()
+    columns: tuple[FieldRef, ...] = ()
+    values: tuple[FieldRef | MeasureRef, ...] = ()
+    tooltips: tuple[FieldRef | MeasureRef, ...] = ()
+
+
+@dataclass(frozen=True)
+class SlicerBinding(VisualBinding):
+    values: tuple[FieldRef, ...] = ()
+
+
 @dataclass
 class Position:
     x: float
@@ -266,6 +312,7 @@ class Visual:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -274,6 +321,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
         )
 
     @classmethod
@@ -285,6 +333,7 @@ class Visual:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -293,6 +342,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
         )
 
     @classmethod
@@ -304,6 +354,7 @@ class Visual:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -312,6 +363,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
         )
 
     @classmethod
@@ -323,6 +375,7 @@ class Visual:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -331,6 +384,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
         )
 
     @classmethod
@@ -343,6 +397,7 @@ class Visual:
         *,
         name: str | None = None,
         mode: str = "Basic",
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -351,6 +406,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
             mode=mode,
         )
 
@@ -363,6 +419,7 @@ class Visual:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -371,6 +428,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
         )
 
     @classmethod
@@ -382,6 +440,7 @@ class Visual:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -390,6 +449,7 @@ class Visual:
             name=name or _new_name(),
             position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+            binding=binding,
         )
 
     @classmethod
@@ -495,29 +555,43 @@ class Visual:
     def _visual_objects(self) -> dict[str, Any]:
         return {}
 
+    def validate(self) -> None:
+        return None
+
 
 @dataclass
-class LineChart(Visual):
+class DataVisual(Visual):
+    binding: VisualBinding | None = None
+
+    def validate(self) -> None:
+        if self.binding is not None:
+            raise ValueError(
+                f"Bindings are not written to PBIR yet for {self.visual_type} visual '{self.name}'"
+            )
+
+
+@dataclass
+class LineChart(DataVisual):
     visual_type = "lineChart"
 
 
 @dataclass
-class BarChart(Visual):
+class BarChart(DataVisual):
     visual_type = "barChart"
 
 
 @dataclass
-class ClusteredColumnChart(Visual):
+class ClusteredColumnChart(DataVisual):
     visual_type = "clusteredColumnChart"
 
 
 @dataclass
-class Card(Visual):
+class Card(DataVisual):
     visual_type = "cardVisual"
 
 
 @dataclass
-class Slicer(Visual):
+class Slicer(DataVisual):
     visual_type = "slicer"
     mode: str = "Basic"
 
@@ -534,12 +608,12 @@ class Slicer(Visual):
 
 
 @dataclass
-class Table(Visual):
+class Table(DataVisual):
     visual_type = "tableEx"
 
 
 @dataclass
-class Matrix(Visual):
+class Matrix(DataVisual):
     visual_type = "pivotTable"
 
 
@@ -658,6 +732,7 @@ class Page:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -667,6 +742,7 @@ class Page:
                 width=width,
                 height=height,
                 name=name,
+                binding=binding,
                 general_formatting=general_formatting,
                 tab_order=len(self.visuals),
             )
@@ -680,6 +756,7 @@ class Page:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -689,6 +766,7 @@ class Page:
                 width=width,
                 height=height,
                 name=name,
+                binding=binding,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -703,6 +781,7 @@ class Page:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -712,6 +791,7 @@ class Page:
                 width=width,
                 height=height,
                 name=name,
+                binding=binding,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -726,6 +806,7 @@ class Page:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -735,6 +816,7 @@ class Page:
                 width=width,
                 height=height,
                 name=name,
+                binding=binding,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -750,6 +832,7 @@ class Page:
         *,
         name: str | None = None,
         mode: str = "Basic",
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -760,6 +843,7 @@ class Page:
                 height=height,
                 name=name,
                 mode=mode,
+                binding=binding,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -774,6 +858,7 @@ class Page:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -783,6 +868,7 @@ class Page:
                 width=width,
                 height=height,
                 name=name,
+                binding=binding,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -797,6 +883,7 @@ class Page:
         height: float,
         *,
         name: str | None = None,
+        binding: VisualBinding | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -806,6 +893,7 @@ class Page:
                 width=width,
                 height=height,
                 name=name,
+                binding=binding,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -946,6 +1034,7 @@ class Report:
 
 def write_report(report: Report, output_dir: str | Path, *, overwrite: bool = False) -> Path:
     """Write a report as a PBIP project and return the project directory."""
+    _validate_report(report)
     output_path = Path(output_dir)
     if output_path.exists():
         if not overwrite:
@@ -1066,6 +1155,12 @@ def _pages_document(pages: list[Page]) -> dict[str, Any]:
     if page_order:
         document["activePageName"] = page_order[0]
     return document
+
+
+def _validate_report(report: Report) -> None:
+    for page in report.pages:
+        for visual in page.visuals:
+            visual.validate()
 
 
 def _write_base_theme(report: Report, report_dir: Path) -> None:
