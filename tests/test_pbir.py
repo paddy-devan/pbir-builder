@@ -3,7 +3,20 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from pbir_builder import GeneralFormatting, Report, TextBox, write_report
+from pbir_builder import (
+    BarChart,
+    Card,
+    ClusteredColumnChart,
+    GeneralFormatting,
+    ImageVisual,
+    Matrix,
+    Report,
+    Shape,
+    Slicer,
+    Table,
+    TextBox,
+    write_report,
+)
 
 
 class PbirWriterTests(unittest.TestCase):
@@ -216,6 +229,138 @@ class PbirWriterTests(unittest.TestCase):
             self.assertEqual(text_box_border["show"]["expr"]["Literal"]["Value"], "false")
 
             self.assertIsInstance(page.visuals[1], TextBox)
+
+    def test_writes_extended_visual_primitives(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            background_path = Path(temp_dir) / "background.png"
+            logo_path = Path(temp_dir) / "logo.png"
+            background_path.write_bytes(b"background")
+            logo_path.write_bytes(b"logo")
+
+            report = Report("Visual Gallery", dataset_path="../Model")
+            page = report.add_page("Gallery", name="gallery", width=1280, height=720)
+            page.set_background(background_path)
+            page.add_text_box(20, 20, 240, 60, "Visual gallery", name="textbox")
+            page.add_slicer(20, 100, 200, 120, name="slicer")
+            page.add_card(240, 100, 180, 120, name="card")
+            page.add_shape(
+                240,
+                30,
+                180,
+                50,
+                name="shape",
+                shape_type="rectangleRounded",
+                rotation="0L",
+            )
+            page.add_bar_chart(20, 240, 300, 180, name="bar")
+            page.add_clustered_column_chart(340, 240, 300, 180, name="column")
+            page.add_matrix(660, 240, 280, 180, name="matrix")
+            page.add_table(960, 240, 280, 180, name="table")
+            page.add_image(440, 20, 180, 180, logo_path, name="image")
+
+            project_dir = write_report(report, Path(temp_dir) / "out")
+
+            report_json = _read_json(
+                project_dir / "Visual_Gallery.Report" / "definition" / "report.json"
+            )
+            registered_resources = report_json["resourcePackages"][1]["items"]
+            self.assertEqual(len(registered_resources), 2)
+            self.assertEqual(
+                {item["path"] for item in registered_resources},
+                {
+                    page.background.registered_name,
+                    page.visuals[-1].registered_name,
+                },
+            )
+
+            slicer = _read_json(
+                project_dir
+                / "Visual_Gallery.Report"
+                / "definition"
+                / "pages"
+                / "gallery"
+                / "visuals"
+                / "slicer"
+                / "visual.json"
+            )
+            self.assertEqual(slicer["visual"]["visualType"], "slicer")
+            self.assertEqual(
+                slicer["visual"]["objects"]["data"][0]["properties"]["mode"]["expr"]["Literal"][
+                    "Value"
+                ],
+                "'Basic'",
+            )
+
+            shape = _read_json(
+                project_dir
+                / "Visual_Gallery.Report"
+                / "definition"
+                / "pages"
+                / "gallery"
+                / "visuals"
+                / "shape"
+                / "visual.json"
+            )
+            self.assertEqual(shape["visual"]["visualType"], "shape")
+            self.assertEqual(
+                shape["visual"]["objects"]["shape"][0]["properties"]["tileShape"]["expr"][
+                    "Literal"
+                ]["Value"],
+                "'rectangleRounded'",
+            )
+            self.assertEqual(
+                shape["visual"]["objects"]["rotation"][0]["properties"]["shapeAngle"]["expr"][
+                    "Literal"
+                ]["Value"],
+                "0L",
+            )
+
+            image = _read_json(
+                project_dir
+                / "Visual_Gallery.Report"
+                / "definition"
+                / "pages"
+                / "gallery"
+                / "visuals"
+                / "image"
+                / "visual.json"
+            )
+            self.assertEqual(image["visual"]["visualType"], "image")
+            source_file = image["visual"]["objects"]["image"][0]["properties"]["sourceFile"]["image"]
+            self.assertEqual(source_file["name"]["expr"]["Literal"]["Value"], "'logo.png'")
+            self.assertEqual(
+                source_file["url"]["expr"]["ResourcePackageItem"]["ItemName"],
+                page.visuals[-1].registered_name,
+            )
+            self.assertEqual(source_file["scaling"]["expr"]["Literal"]["Value"], "'Normal'")
+
+            for visual_name, visual_type in [
+                ("bar", "barChart"),
+                ("column", "clusteredColumnChart"),
+                ("card", "cardVisual"),
+                ("matrix", "pivotTable"),
+                ("table", "tableEx"),
+            ]:
+                visual = _read_json(
+                    project_dir
+                    / "Visual_Gallery.Report"
+                    / "definition"
+                    / "pages"
+                    / "gallery"
+                    / "visuals"
+                    / visual_name
+                    / "visual.json"
+                )
+                self.assertEqual(visual["visual"]["visualType"], visual_type)
+
+            self.assertIsInstance(page.visuals[1], Slicer)
+            self.assertIsInstance(page.visuals[2], Card)
+            self.assertIsInstance(page.visuals[3], Shape)
+            self.assertIsInstance(page.visuals[4], BarChart)
+            self.assertIsInstance(page.visuals[5], ClusteredColumnChart)
+            self.assertIsInstance(page.visuals[6], Matrix)
+            self.assertIsInstance(page.visuals[7], Table)
+            self.assertIsInstance(page.visuals[8], ImageVisual)
 
 
 def _read_json(path: Path) -> dict:

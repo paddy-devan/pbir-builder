@@ -38,14 +38,7 @@ VISUAL_SCHEMA = (
     "definition/visualContainer/2.8.0/schema.json"
 )
 DEFAULT_THEME_NAME = "CY26SU04"
-DEFAULT_THEME_SOURCE = (
-    Path("ah_ipr_template")
-    / "ah_ipr_template.Report"
-    / "StaticResources"
-    / "SharedResources"
-    / "BaseThemes"
-    / f"{DEFAULT_THEME_NAME}.json"
-)
+DEFAULT_THEME_SOURCE = None
 
 
 def _new_name() -> str:
@@ -82,6 +75,30 @@ def _bool_literal(value: bool) -> dict[str, Any]:
 
 def _solid_color(value: str) -> dict[str, Any]:
     return {"solid": {"color": _literal(value)}}
+
+
+def _resource_package_item(registered_name: str) -> dict[str, Any]:
+    return {
+        "expr": {
+            "ResourcePackageItem": {
+                "PackageName": "RegisteredResources",
+                "PackageType": 1,
+                "ItemName": registered_name,
+            }
+        }
+    }
+
+
+def _resource_image(
+    display_name: str,
+    registered_name: str,
+    scaling: str,
+) -> dict[str, Any]:
+    return {
+        "name": _literal(display_name),
+        "url": _resource_package_item(registered_name),
+        "scaling": _literal(scaling),
+    }
 
 
 def _new_resource_name(path: Path) -> str:
@@ -123,19 +140,11 @@ class PageBackground:
     def to_pbir_properties(self) -> dict[str, Any]:
         return {
             "image": {
-                "image": {
-                    "name": _literal(self.display_name),
-                    "url": {
-                        "expr": {
-                            "ResourcePackageItem": {
-                                "PackageName": "RegisteredResources",
-                                "PackageType": 1,
-                                "ItemName": self.registered_name,
-                            }
-                        }
-                    },
-                    "scaling": _literal(self.scaling),
-                }
+                "image": _resource_image(
+                    self.display_name,
+                    self.registered_name,
+                    self.scaling,
+                )
             },
             "transparency": _numeric_literal(self.transparency),
         }
@@ -263,15 +272,172 @@ class Visual:
     ) -> "Visual":
         return LineChart(
             name=name or _new_name(),
-            position=Position(
-                x=x,
-                y=y,
-                width=width,
-                height=height,
-                z=z,
-                tab_order=tab_order,
-            ),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
+        )
+
+    @classmethod
+    def bar_chart(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return BarChart(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+        )
+
+    @classmethod
+    def clustered_column_chart(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return ClusteredColumnChart(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+        )
+
+    @classmethod
+    def card(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return Card(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+        )
+
+    @classmethod
+    def slicer(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        mode: str = "Basic",
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return Slicer(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+            mode=mode,
+        )
+
+    @classmethod
+    def table(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return Table(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+        )
+
+    @classmethod
+    def matrix(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return Matrix(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+        )
+
+    @classmethod
+    def shape(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        shape_type: str = "rectangleRounded",
+        rotation: str | int | float = "0L",
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        return Shape(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+            shape_type=shape_type,
+            rotation=rotation,
+        )
+
+    @classmethod
+    def image(
+        cls,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        image_path: str | Path,
+        *,
+        name: str | None = None,
+        scaling: str = "Normal",
+        general_formatting: GeneralFormatting | None = None,
+        z: int = 0,
+        tab_order: int = 0,
+    ) -> "Visual":
+        image_source = Path(image_path)
+        return ImageVisual(
+            name=name or _new_name(),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
+            general_formatting=general_formatting or GeneralFormatting(),
+            image_path=image_source,
+            registered_name=_new_resource_name(image_source),
+            scaling=scaling,
         )
 
     @classmethod
@@ -293,14 +459,7 @@ class Visual:
     ) -> "Visual":
         return TextBox(
             name=name or _new_name(),
-            position=Position(
-                x=x,
-                y=y,
-                width=width,
-                height=height,
-                z=z,
-                tab_order=tab_order,
-            ),
+            position=_position(x, y, width, height, z=z, tab_order=tab_order),
             general_formatting=general_formatting or GeneralFormatting(),
             text=text,
             typeface=typeface,
@@ -340,6 +499,102 @@ class Visual:
 @dataclass
 class LineChart(Visual):
     visual_type = "lineChart"
+
+
+@dataclass
+class BarChart(Visual):
+    visual_type = "barChart"
+
+
+@dataclass
+class ClusteredColumnChart(Visual):
+    visual_type = "clusteredColumnChart"
+
+
+@dataclass
+class Card(Visual):
+    visual_type = "cardVisual"
+
+
+@dataclass
+class Slicer(Visual):
+    visual_type = "slicer"
+    mode: str = "Basic"
+
+    def _visual_objects(self) -> dict[str, Any]:
+        return {
+            "data": [
+                {
+                    "properties": {
+                        "mode": _literal(self.mode),
+                    }
+                }
+            ]
+        }
+
+
+@dataclass
+class Table(Visual):
+    visual_type = "tableEx"
+
+
+@dataclass
+class Matrix(Visual):
+    visual_type = "pivotTable"
+
+
+@dataclass
+class Shape(Visual):
+    visual_type = "shape"
+    shape_type: str = "rectangleRounded"
+    rotation: str | int | float = "0L"
+
+    def _visual_objects(self) -> dict[str, Any]:
+        return {
+            "shape": [
+                {
+                    "properties": {
+                        "tileShape": _literal(self.shape_type),
+                    }
+                }
+            ],
+            "rotation": [
+                {
+                    "properties": {
+                        "shapeAngle": _numeric_literal(self.rotation),
+                    }
+                }
+            ],
+        }
+
+
+@dataclass
+class ImageVisual(Visual):
+    visual_type = "image"
+    image_path: Path = field(default_factory=lambda: Path("."))
+    registered_name: str = ""
+    scaling: str = "Normal"
+
+    @property
+    def display_name(self) -> str:
+        return self.image_path.name
+
+    def _visual_objects(self) -> dict[str, Any]:
+        return {
+            "image": [
+                {
+                    "properties": {
+                        "sourceFile": {
+                            "image": _resource_image(
+                                self.display_name,
+                                self.registered_name,
+                                self.scaling,
+                            )
+                        }
+                    }
+                }
+            ]
+        }
 
 
 @dataclass
@@ -413,6 +668,200 @@ class Page:
                 height=height,
                 name=name,
                 general_formatting=general_formatting,
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_bar_chart(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.bar_chart(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_clustered_column_chart(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.clustered_column_chart(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_card(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.card(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_slicer(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        mode: str = "Basic",
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.slicer(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                mode=mode,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_table(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.table(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_matrix(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.matrix(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_shape(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        *,
+        name: str | None = None,
+        shape_type: str = "rectangleRounded",
+        rotation: str | int | float = "0L",
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.shape(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                name=name,
+                shape_type=shape_type,
+                rotation=rotation,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
+                tab_order=len(self.visuals),
+            )
+        )
+
+    def add_image(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        image_path: str | Path,
+        *,
+        name: str | None = None,
+        scaling: str = "Normal",
+        general_formatting: GeneralFormatting | None = None,
+    ) -> Visual:
+        return self.add_visual(
+            Visual.image(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                image_path=image_path,
+                name=name,
+                scaling=scaling,
+                general_formatting=general_formatting,
+                z=len(self.visuals),
                 tab_order=len(self.visuals),
             )
         )
@@ -634,43 +1083,71 @@ def _write_base_theme(report: Report, report_dir: Path) -> None:
 
 
 def _write_registered_resources(report: Report, report_dir: Path) -> None:
-    backgrounds = _unique_backgrounds(report)
-    if not backgrounds:
+    resources = _unique_registered_resources(report)
+    if not resources:
         return
 
     resource_dir = report_dir / "StaticResources" / "RegisteredResources"
     resource_dir.mkdir(parents=True)
-    for background in backgrounds.values():
-        source = background.image_path
+    for resource in resources.values():
+        source = resource.image_path
         if not source.exists():
-            raise FileNotFoundError(f"Background image not found: {source}")
-        shutil.copyfile(source, resource_dir / background.registered_name)
+            raise FileNotFoundError(f"Registered image not found: {source}")
+        shutil.copyfile(source, resource_dir / resource.registered_name)
 
 
 def _registered_resource_items(report: Report) -> list[dict[str, str]]:
     items = []
-    for background in _unique_backgrounds(report).values():
+    for resource in _unique_registered_resources(report).values():
         items.append(
             {
-                "name": background.registered_name,
-                "path": background.registered_name,
+                "name": resource.registered_name,
+                "path": resource.registered_name,
                 "type": "Image",
             }
         )
     return items
 
 
-def _unique_backgrounds(report: Report) -> dict[Path, PageBackground]:
-    backgrounds: dict[Path, PageBackground] = {}
+def _unique_registered_resources(report: Report) -> dict[Path, PageBackground | ImageVisual]:
+    resources: dict[Path, PageBackground | ImageVisual] = {}
     for page in report.pages:
-        if page.background is None:
-            continue
-        key = page.background.image_path.resolve()
-        if key in backgrounds:
-            page.background.registered_name = backgrounds[key].registered_name
-        else:
-            backgrounds[key] = page.background
-    return backgrounds
+        if page.background is not None:
+            _register_resource(resources, page.background)
+        for visual in page.visuals:
+            if isinstance(visual, ImageVisual):
+                _register_resource(resources, visual)
+    return resources
+
+
+def _register_resource(
+    resources: dict[Path, PageBackground | ImageVisual],
+    resource: PageBackground | ImageVisual,
+) -> None:
+    key = resource.image_path.resolve()
+    if key in resources:
+        resource.registered_name = resources[key].registered_name
+    else:
+        resources[key] = resource
+
+
+def _position(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    *,
+    z: int = 0,
+    tab_order: int = 0,
+) -> Position:
+    return Position(
+        x=x,
+        y=y,
+        width=width,
+        height=height,
+        z=z,
+        tab_order=tab_order,
+    )
 
 
 def _text_style(
