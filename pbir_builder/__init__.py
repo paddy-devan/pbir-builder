@@ -1,5 +1,7 @@
 """Small PBIR report-generation primitives."""
 
+__version__ = "0.1.0"
+
 from .pbir import (
     GeneralFormatting,
     LineChart,
@@ -12,6 +14,7 @@ from .pbir import (
 )
 
 __all__ = [
+    "__version__",
     "GeneralFormatting",
     "LineChart",
     "Page",

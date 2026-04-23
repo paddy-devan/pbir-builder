@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from auto_ipr import GeneralFormatting, Report, TextBox, write_report
+from pbir_builder import GeneralFormatting, Report, TextBox, write_report
 
 
 class PbirWriterTests(unittest.TestCase):
