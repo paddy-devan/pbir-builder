@@ -8,16 +8,21 @@ dynamic = ["version"]
 description = "Programmatically generate Power BI report layouts in the PBIR format."
 readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
 keywords = ["power-bi", "pbir", "pbip", "reporting"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pbir_builder.__version__" }
