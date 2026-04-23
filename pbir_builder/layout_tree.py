@@ -1,0 +1,185 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Callable
+
+from .layout import Frame, Grid as FrameGrid
+from .layout import Padding
+from .pbir import GeneralFormatting, Page, Visual
+
+
+@dataclass(frozen=True)
+class LayoutDebugStyle:
+    border_color: str = "#FF6A00"
+    border_width: float = 4
+    border_radius: float = 0
+    shape_type: str = "rectangle"
+
+
+@dataclass
+class LayoutNode:
+    """Base type for nodes that compile into positioned visuals."""
+
+    def resolve_visuals(
+        self,
+        frame: Frame,
+        *,
+        debug: bool = False,
+        debug_style: LayoutDebugStyle | None = None,
+    ) -> list[Visual]:
+        raise NotImplementedError
+
+    def apply_to(
+        self,
+        page: Page,
+        frame: Frame,
+        *,
+        debug: bool = False,
+        debug_style: LayoutDebugStyle | None = None,
+    ) -> None:
+        apply_layout(page, self, frame, debug=debug, debug_style=debug_style)
+
+
+@dataclass
+class VisualPlacement(LayoutNode):
+    factory: Callable[..., Visual]
+    args: tuple[Any, ...] = ()
+    kwargs: dict[str, Any] = field(default_factory=dict)
+
+    def resolve_visuals(
+        self,
+        frame: Frame,
+        *,
+        debug: bool = False,
+        debug_style: LayoutDebugStyle | None = None,
+    ) -> list[Visual]:
+        visual = self.factory(
+            frame.x,
+            frame.y,
+            frame.width,
+            frame.height,
+            *self.args,
+            **self.kwargs,
+        )
+        return [visual]
+
+
+@dataclass
+class ContainerNode(LayoutNode):
+    gap: float = 0
+    padding: Padding | float = field(default_factory=Padding)
+    debug: bool = False
+    children: list[LayoutNode] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.gap < 0:
+            raise ValueError("Container gap must be non-negative")
+        self.padding = _coerce_padding(self.padding)
+
+    def add(self, child: LayoutNode) -> LayoutNode:
+        self.children.append(child)
+        return child
+
+    def resolve_visuals(
+        self,
+        frame: Frame,
+        *,
+        debug: bool = False,
+        debug_style: LayoutDebugStyle | None = None,
+    ) -> list[Visual]:
+        child_frames = self._child_frames(frame)
+        visuals: list[Visual] = []
+        if self.debug or debug:
+            visuals.append(_debug_shape(frame, debug_style))
+        for child, child_frame in zip(self.children, child_frames):
+            visuals.extend(
+                child.resolve_visuals(
+                    child_frame,
+                    debug=debug,
+                    debug_style=debug_style,
+                )
+            )
+        return visuals
+
+    def _child_frames(self, frame: Frame) -> list[Frame]:
+        raise NotImplementedError
+
+    def _resolve_grid_frames(self, frame: Frame, *, rows: int, columns: int) -> list[Frame]:
+        return FrameGrid(
+            x=frame.x,
+            y=frame.y,
+            width=frame.width,
+            height=frame.height,
+            rows=rows,
+            columns=columns,
+            gap=self.gap,
+            padding=self.padding,
+        ).resolve(len(self.children))
+
+
+@dataclass
+class HStackNode(ContainerNode):
+    def _child_frames(self, frame: Frame) -> list[Frame]:
+        return self._resolve_grid_frames(frame, rows=1, columns=max(1, len(self.children)))
+
+
+@dataclass
+class VStackNode(ContainerNode):
+    def _child_frames(self, frame: Frame) -> list[Frame]:
+        return self._resolve_grid_frames(frame, rows=max(1, len(self.children)), columns=1)
+
+
+@dataclass
+class GridNode(ContainerNode):
+    rows: int = 1
+    columns: int = 1
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.rows <= 0 or self.columns <= 0:
+            raise ValueError("Grid rows and columns must be positive")
+
+    def _child_frames(self, frame: Frame) -> list[Frame]:
+        return self._resolve_grid_frames(frame, rows=self.rows, columns=self.columns)
+
+
+def apply_layout(
+    page: Page,
+    node: LayoutNode,
+    frame: Frame,
+    *,
+    debug: bool = False,
+    debug_style: LayoutDebugStyle | None = None,
+) -> None:
+    for visual in node.resolve_visuals(frame, debug=debug, debug_style=debug_style):
+        visual.position.z = len(page.visuals)
+        visual.position.tab_order = len(page.visuals)
+        page.add_visual(visual)
+
+
+def _coerce_padding(value: Padding | float) -> Padding:
+    if isinstance(value, Padding):
+        return value
+    return Padding.all(value)
+
+
+def _debug_shape(frame: Frame, debug_style: LayoutDebugStyle | None) -> Visual:
+    style = debug_style or LayoutDebugStyle()
+    visual = Visual.shape(
+        frame.x,
+        frame.y,
+        frame.width,
+        frame.height,
+        shape_type=style.shape_type,
+        fill_show=False,
+        outline_show=False,
+        general_formatting=GeneralFormatting(
+            background_show=False,
+            border_show=True,
+            border_color=style.border_color,
+            border_width=style.border_width,
+            border_radius=style.border_radius,
+        ),
+    )
+    visual._from_layout_debug = True
+    return visual

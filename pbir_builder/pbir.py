@@ -213,6 +213,7 @@ class GeneralFormatting:
     background_transparency: str | int | float | None = None
     border_show: bool | None = None
     border_color: str | None = None
+    border_width: str | int | float | None = None
     border_radius: str | int | float | None = None
 
     def to_visual_container_objects(self) -> dict[str, Any]:
@@ -290,6 +291,8 @@ class GeneralFormatting:
             properties["show"] = _bool_literal(self.border_show)
         if self.border_color is not None:
             properties["color"] = _solid_color(self.border_color)
+        if self.border_width is not None:
+            properties["width"] = _numeric_literal(self.border_width)
         if self.border_radius is not None:
             properties["radius"] = _numeric_literal(self.border_radius)
         return properties
@@ -463,6 +466,8 @@ class Visual:
         name: str | None = None,
         shape_type: str = "rectangleRounded",
         rotation: str | int | float = "0L",
+        fill_show: bool | None = None,
+        outline_show: bool | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -473,6 +478,8 @@ class Visual:
             general_formatting=general_formatting or GeneralFormatting(),
             shape_type=shape_type,
             rotation=rotation,
+            fill_show=fill_show,
+            outline_show=outline_show,
         )
 
     @classmethod
@@ -622,9 +629,11 @@ class Shape(Visual):
     visual_type = "shape"
     shape_type: str = "rectangleRounded"
     rotation: str | int | float = "0L"
+    fill_show: bool | None = None
+    outline_show: bool | None = None
 
     def _visual_objects(self) -> dict[str, Any]:
-        return {
+        objects: dict[str, Any] = {
             "shape": [
                 {
                     "properties": {
@@ -640,6 +649,11 @@ class Shape(Visual):
                 }
             ],
         }
+        if self.fill_show is not None:
+            objects["fill"] = [{"properties": {"show": _bool_literal(self.fill_show)}}]
+        if self.outline_show is not None:
+            objects["outline"] = [{"properties": {"show": _bool_literal(self.outline_show)}}]
+        return objects
 
 
 @dataclass
@@ -707,6 +721,88 @@ class Page:
     def add_visual(self, visual: Visual) -> Visual:
         self.visuals.append(visual)
         return visual
+
+    def add_hstack(
+        self,
+        gap: float = 0,
+        padding: Any = 0,
+        *,
+        debug: bool = False,
+        frame: Any = None,
+        x: float = 0,
+        y: float = 0,
+        width: float | None = None,
+        height: float | None = None,
+    ) -> Any:
+        from .layout_authoring import page_add_hstack
+
+        return page_add_hstack(
+            self,
+            gap=gap,
+            padding=padding,
+            debug=debug,
+            frame=frame,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+        )
+
+    def add_vstack(
+        self,
+        gap: float = 0,
+        padding: Any = 0,
+        *,
+        debug: bool = False,
+        frame: Any = None,
+        x: float = 0,
+        y: float = 0,
+        width: float | None = None,
+        height: float | None = None,
+    ) -> Any:
+        from .layout_authoring import page_add_vstack
+
+        return page_add_vstack(
+            self,
+            gap=gap,
+            padding=padding,
+            debug=debug,
+            frame=frame,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+        )
+
+    def add_grid(
+        self,
+        rows: int,
+        columns: int,
+        *,
+        gap: float = 0,
+        padding: Any = 0,
+        debug: bool = False,
+        frame: Any = None,
+        x: float = 0,
+        y: float = 0,
+        width: float | None = None,
+        height: float | None = None,
+    ) -> Any:
+        from .layout_authoring import page_add_grid
+
+        return page_add_grid(
+            self,
+            rows=rows,
+            columns=columns,
+            gap=gap,
+            padding=padding,
+            debug=debug,
+            frame=frame,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+        )
 
     def set_background(
         self,
@@ -910,6 +1006,8 @@ class Page:
         name: str | None = None,
         shape_type: str = "rectangleRounded",
         rotation: str | int | float = "0L",
+        fill_show: bool | None = None,
+        outline_show: bool | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -921,6 +1019,8 @@ class Page:
                 name=name,
                 shape_type=shape_type,
                 rotation=rotation,
+                fill_show=fill_show,
+                outline_show=outline_show,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
@@ -1032,8 +1132,22 @@ class Report:
         return self.artifact_name or _artifact_name(self.display_name)
 
 
-def write_report(report: Report, output_dir: str | Path, *, overwrite: bool = False) -> Path:
+def write_report(
+    report: Report,
+    output_dir: str | Path,
+    *,
+    overwrite: bool = False,
+    layout_debug: bool = False,
+    layout_debug_style: Any = None,
+) -> Path:
     """Write a report as a PBIP project and return the project directory."""
+    from .layout_authoring import materialize_report_layouts
+
+    materialize_report_layouts(
+        report,
+        debug=layout_debug,
+        debug_style=layout_debug_style,
+    )
     _validate_report(report)
     output_path = Path(output_dir)
     if output_path.exists():
