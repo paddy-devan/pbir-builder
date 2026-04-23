@@ -3,6 +3,14 @@
 __version__ = "0.1.0"
 
 from .layout import Frame, Grid, HStack, Padding, VStack
+from .layout_tree import (
+    GridNode,
+    HStackNode,
+    LayoutNode,
+    VStackNode,
+    VisualPlacement,
+    apply_layout,
+)
 from .pbir import (
     BarChart,
     CartesianBinding,
@@ -31,6 +39,7 @@ from .pbir import (
 
 __all__ = [
     "__version__",
+    "apply_layout",
     "BarChart",
     "CartesianBinding",
     "Card",
@@ -39,8 +48,11 @@ __all__ = [
     "Frame",
     "GeneralFormatting",
     "Grid",
+    "GridNode",
     "HStack",
+    "HStackNode",
     "ImageVisual",
+    "LayoutNode",
     "LineChart",
     "Matrix",
     "MeasureRef",
@@ -56,7 +68,9 @@ __all__ = [
     "TabularBinding",
     "TextBox",
     "Visual",
+    "VisualPlacement",
     "VStack",
+    "VStackNode",
     "VisualBinding",
     "write_report",
 ]

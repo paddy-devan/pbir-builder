@@ -708,6 +708,82 @@ class Page:
         self.visuals.append(visual)
         return visual
 
+    def add_hstack(
+        self,
+        gap: float = 0,
+        padding: Any = 0,
+        *,
+        frame: Any = None,
+        x: float = 0,
+        y: float = 0,
+        width: float | None = None,
+        height: float | None = None,
+    ) -> Any:
+        from .layout_authoring import page_add_hstack
+
+        return page_add_hstack(
+            self,
+            gap=gap,
+            padding=padding,
+            frame=frame,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+        )
+
+    def add_vstack(
+        self,
+        gap: float = 0,
+        padding: Any = 0,
+        *,
+        frame: Any = None,
+        x: float = 0,
+        y: float = 0,
+        width: float | None = None,
+        height: float | None = None,
+    ) -> Any:
+        from .layout_authoring import page_add_vstack
+
+        return page_add_vstack(
+            self,
+            gap=gap,
+            padding=padding,
+            frame=frame,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+        )
+
+    def add_grid(
+        self,
+        rows: int,
+        columns: int,
+        *,
+        gap: float = 0,
+        padding: Any = 0,
+        frame: Any = None,
+        x: float = 0,
+        y: float = 0,
+        width: float | None = None,
+        height: float | None = None,
+    ) -> Any:
+        from .layout_authoring import page_add_grid
+
+        return page_add_grid(
+            self,
+            rows=rows,
+            columns=columns,
+            gap=gap,
+            padding=padding,
+            frame=frame,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+        )
+
     def set_background(
         self,
         image_path: str | Path,
@@ -1034,6 +1110,9 @@ class Report:
 
 def write_report(report: Report, output_dir: str | Path, *, overwrite: bool = False) -> Path:
     """Write a report as a PBIP project and return the project directory."""
+    from .layout_authoring import materialize_report_layouts
+
+    materialize_report_layouts(report)
     _validate_report(report)
     output_path = Path(output_dir)
     if output_path.exists():

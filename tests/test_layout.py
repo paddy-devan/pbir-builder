@@ -1,6 +1,21 @@
+import tempfile
 import unittest
+from pathlib import Path
 
-from pbir_builder import Grid, HStack, Padding, VStack
+from pbir_builder import (
+    Frame,
+    Grid,
+    GridNode,
+    HStack,
+    HStackNode,
+    Padding,
+    Report,
+    VStack,
+    VStackNode,
+    Visual,
+    VisualPlacement,
+    apply_layout,
+)
 
 
 class LayoutContainerTests(unittest.TestCase):
@@ -65,6 +80,80 @@ class LayoutContainerTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "Grid capacity exceeded"):
             grid.resolve(3)
+
+    def test_nested_layout_nodes_resolve_to_visuals(self) -> None:
+        node = HStackNode(
+            gap=20,
+            children=[
+                VisualPlacement(Visual.card),
+                VStackNode(
+                    gap=10,
+                    children=[
+                        VisualPlacement(Visual.text_box, args=("Top",)),
+                        VisualPlacement(Visual.text_box, args=("Bottom",)),
+                    ],
+                ),
+            ],
+        )
+
+        visuals = node.resolve_visuals(Frame(10, 20, 330, 180))
+
+        self.assertEqual(len(visuals), 3)
+        self.assertEqual(visuals[0].visual_type, "cardVisual")
+        self.assertEqual(visuals[0].position.x, 10)
+        self.assertEqual(visuals[0].position.width, 155)
+        self.assertEqual(visuals[1].position.x, 185)
+        self.assertEqual(visuals[1].position.y, 20)
+        self.assertEqual(visuals[1].position.height, 85)
+        self.assertEqual(visuals[2].position.y, 115)
+
+    def test_apply_layout_adds_resolved_visuals_to_page(self) -> None:
+        report = Report("Layout Test")
+        page = report.add_page("Overview")
+        node = GridNode(
+            rows=1,
+            columns=2,
+            gap=12,
+            children=[
+                VisualPlacement(Visual.line_chart),
+                VisualPlacement(Visual.bar_chart),
+            ],
+        )
+
+        apply_layout(page, node, Frame(40, 60, 420, 180))
+
+        self.assertEqual(len(page.visuals), 2)
+        self.assertEqual(page.visuals[0].visual_type, "lineChart")
+        self.assertEqual(page.visuals[0].position.tab_order, 0)
+        self.assertEqual(page.visuals[1].visual_type, "barChart")
+        self.assertEqual(page.visuals[1].position.x, 256)
+        self.assertEqual(page.visuals[1].position.tab_order, 1)
+
+    def test_page_layout_facade_supports_nested_container_authoring(self) -> None:
+        report = Report("Facade Test")
+        page = report.add_page("Overview", width=600, height=400)
+
+        outer = page.add_vstack(12, 8, frame=Frame(20, 30, 560, 300))
+        top_row = outer.add_hstack(10)
+        bottom_row = outer.add_hstack(16)
+        top_row.add_card()
+        top_row.add_text_box("Summary", font_size=14)
+        bottom_row.add_slicer()
+
+        page_json_before = len(page.visuals)
+        self.assertEqual(page_json_before, 0)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            from pbir_builder import write_report
+
+            write_report(report, Path(temp_dir) / "out")
+
+        self.assertEqual(len(page.visuals), 3)
+        self.assertEqual(page.visuals[0].visual_type, "cardVisual")
+        self.assertEqual(page.visuals[1].visual_type, "textbox")
+        self.assertEqual(page.visuals[2].visual_type, "slicer")
+        self.assertEqual(page.visuals[0].position.x, 28)
+        self.assertEqual(page.visuals[2].position.y, 186.0)
 
 
 if __name__ == "__main__":
