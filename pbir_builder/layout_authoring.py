@@ -4,7 +4,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from .layout import Frame
-from .layout_tree import GridNode, HStackNode, VStackNode, VisualPlacement, apply_layout
+from .layout_tree import (
+    ContainerNode,
+    GridNode,
+    HStackNode,
+    VStackNode,
+    VisualPlacement,
+    apply_layout,
+)
 from .pbir import Visual
 
 if TYPE_CHECKING:
@@ -14,7 +21,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class RootLayout:
-    node: HStackNode | VStackNode | GridNode
+    node: ContainerNode
     frame: Frame
 
 
@@ -24,7 +31,7 @@ class LayoutState:
 
 
 class LayoutContainerFacade:
-    def __init__(self, page: "Page", node: HStackNode | VStackNode | GridNode):
+    def __init__(self, page: "Page", node: ContainerNode):
         self._page = page
         self._node = node
 
@@ -161,7 +168,7 @@ def materialize_report_layouts(report: "Report") -> None:
 
 def _add_root_container(
     page: "Page",
-    node: HStackNode | VStackNode | GridNode,
+    node: ContainerNode,
     *,
     frame: Frame | None,
     x: float,

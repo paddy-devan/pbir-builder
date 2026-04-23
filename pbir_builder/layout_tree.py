@@ -4,9 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from .layout import Frame, Grid as FrameGrid
-from .layout import HStack as FrameHStack
 from .layout import Padding
-from .layout import VStack as FrameVStack
 from .pbir import Page, Visual
 
 
@@ -64,31 +62,29 @@ class ContainerNode(LayoutNode):
     def _child_frames(self, frame: Frame) -> list[Frame]:
         raise NotImplementedError
 
-
-@dataclass
-class HStackNode(ContainerNode):
-    def _child_frames(self, frame: Frame) -> list[Frame]:
-        return FrameHStack(
+    def _resolve_grid_frames(self, frame: Frame, *, rows: int, columns: int) -> list[Frame]:
+        return FrameGrid(
             x=frame.x,
             y=frame.y,
             width=frame.width,
             height=frame.height,
+            rows=rows,
+            columns=columns,
             gap=self.gap,
             padding=self.padding,
         ).resolve(len(self.children))
+
+
+@dataclass
+class HStackNode(ContainerNode):
+    def _child_frames(self, frame: Frame) -> list[Frame]:
+        return self._resolve_grid_frames(frame, rows=1, columns=max(1, len(self.children)))
 
 
 @dataclass
 class VStackNode(ContainerNode):
     def _child_frames(self, frame: Frame) -> list[Frame]:
-        return FrameVStack(
-            x=frame.x,
-            y=frame.y,
-            width=frame.width,
-            height=frame.height,
-            gap=self.gap,
-            padding=self.padding,
-        ).resolve(len(self.children))
+        return self._resolve_grid_frames(frame, rows=max(1, len(self.children)), columns=1)
 
 
 @dataclass
@@ -102,16 +98,7 @@ class GridNode(ContainerNode):
             raise ValueError("Grid rows and columns must be positive")
 
     def _child_frames(self, frame: Frame) -> list[Frame]:
-        return FrameGrid(
-            x=frame.x,
-            y=frame.y,
-            width=frame.width,
-            height=frame.height,
-            rows=self.rows,
-            columns=self.columns,
-            gap=self.gap,
-            padding=self.padding,
-        ).resolve(len(self.children))
+        return self._resolve_grid_frames(frame, rows=self.rows, columns=self.columns)
 
 
 def apply_layout(page: Page, node: LayoutNode, frame: Frame) -> None:

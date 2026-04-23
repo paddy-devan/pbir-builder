@@ -86,87 +86,35 @@ class LayoutContainer:
     def resolve(self, item_count: int) -> list[Frame]:
         raise NotImplementedError
 
-
-@dataclass
-class HStack(LayoutContainer):
-    def resolve(self, item_count: int) -> list[Frame]:
+    def _resolve_grid(
+        self,
+        *,
+        item_count: int,
+        rows: int,
+        columns: int,
+        name: str,
+    ) -> list[Frame]:
         _validate_item_count(item_count)
-        if item_count == 0:
-            return []
+        _validate_grid_shape(rows, columns)
 
-        inner = self.inner_frame
-        available_width = inner.width - self.gap * (item_count - 1)
-        if available_width < 0:
-            raise ValueError("Gap exceeds the available width for this HStack")
-
-        item_width = available_width / item_count
-        return [
-            Frame(
-                x=inner.x + index * (item_width + self.gap),
-                y=inner.y,
-                width=item_width,
-                height=inner.height,
-            )
-            for index in range(item_count)
-        ]
-
-
-@dataclass
-class VStack(LayoutContainer):
-    def resolve(self, item_count: int) -> list[Frame]:
-        _validate_item_count(item_count)
-        if item_count == 0:
-            return []
-
-        inner = self.inner_frame
-        available_height = inner.height - self.gap * (item_count - 1)
-        if available_height < 0:
-            raise ValueError("Gap exceeds the available height for this VStack")
-
-        item_height = available_height / item_count
-        return [
-            Frame(
-                x=inner.x,
-                y=inner.y + index * (item_height + self.gap),
-                width=inner.width,
-                height=item_height,
-            )
-            for index in range(item_count)
-        ]
-
-
-@dataclass
-class Grid(LayoutContainer):
-    rows: int = 1
-    columns: int = 1
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        if self.rows <= 0 or self.columns <= 0:
-            raise ValueError("Grid rows and columns must be positive")
-
-    def resolve(self, item_count: int) -> list[Frame]:
-        _validate_item_count(item_count)
-        capacity = self.rows * self.columns
+        capacity = rows * columns
         if item_count > capacity:
-            raise ValueError(
-                f"Grid capacity exceeded: got {item_count} items for {self.rows}x{self.columns}"
-            )
+            raise ValueError(f"{name} capacity exceeded: got {item_count} items for {rows}x{columns}")
         if item_count == 0:
             return []
 
         inner = self.inner_frame
-        available_width = inner.width - self.gap * (self.columns - 1)
-        available_height = inner.height - self.gap * (self.rows - 1)
+        available_width = inner.width - self.gap * (columns - 1)
+        available_height = inner.height - self.gap * (rows - 1)
         if available_width < 0 or available_height < 0:
-            raise ValueError("Gap exceeds the available size for this Grid")
+            raise ValueError(f"Gap exceeds the available size for this {name}")
 
-        cell_width = available_width / self.columns
-        cell_height = available_height / self.rows
+        cell_width = available_width / columns
+        cell_height = available_height / rows
         frames = []
         for index in range(item_count):
-            row = index // self.columns
-            column = index % self.columns
+            row = index // columns
+            column = index % columns
             frames.append(
                 Frame(
                     x=inner.x + column * (cell_width + self.gap),
@@ -178,6 +126,36 @@ class Grid(LayoutContainer):
         return frames
 
 
+@dataclass
+class HStack(LayoutContainer):
+    def resolve(self, item_count: int) -> list[Frame]:
+        return self._resolve_grid(item_count=item_count, rows=1, columns=max(1, item_count), name="HStack")
+
+
+@dataclass
+class VStack(LayoutContainer):
+    def resolve(self, item_count: int) -> list[Frame]:
+        return self._resolve_grid(item_count=item_count, rows=max(1, item_count), columns=1, name="VStack")
+
+
+@dataclass
+class Grid(LayoutContainer):
+    rows: int = 1
+    columns: int = 1
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        _validate_grid_shape(self.rows, self.columns)
+
+    def resolve(self, item_count: int) -> list[Frame]:
+        return self._resolve_grid(
+            item_count=item_count,
+            rows=self.rows,
+            columns=self.columns,
+            name="Grid",
+        )
+
+
 def _coerce_padding(value: Padding | float) -> Padding:
     if isinstance(value, Padding):
         return value
@@ -187,3 +165,8 @@ def _coerce_padding(value: Padding | float) -> Padding:
 def _validate_item_count(item_count: int) -> None:
     if item_count < 0:
         raise ValueError("Item count must be non-negative")
+
+
+def _validate_grid_shape(rows: int, columns: int) -> None:
+    if rows <= 0 or columns <= 0:
+        raise ValueError("Grid rows and columns must be positive")
