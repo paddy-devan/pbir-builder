@@ -5,11 +5,14 @@ from pathlib import Path
 
 from pbir_builder import (
     BarChart,
+    CartesianBinding,
     Card,
     ClusteredColumnChart,
+    FieldRef,
     GeneralFormatting,
     ImageVisual,
     Matrix,
+    MeasureRef,
     Report,
     Shape,
     Slicer,
@@ -361,6 +364,34 @@ class PbirWriterTests(unittest.TestCase):
             self.assertIsInstance(page.visuals[6], Matrix)
             self.assertIsInstance(page.visuals[7], Table)
             self.assertIsInstance(page.visuals[8], ImageVisual)
+
+    def test_accepts_optional_binding_slots_but_rejects_writing_populated_bindings(self) -> None:
+        report = Report("Bound Report", dataset_path="../Model")
+        page = report.add_page("Overview", name="page1")
+        chart = page.add_line_chart(
+            10,
+            20,
+            300,
+            200,
+            name="visual1",
+            binding=CartesianBinding(
+                category=FieldRef("penguins", "species"),
+                values=(MeasureRef("penguins", "average_mass_g"),),
+            ),
+        )
+
+        self.assertEqual(chart.binding.category, FieldRef("penguins", "species"))
+        self.assertEqual(
+            chart.binding.values,
+            (MeasureRef("penguins", "average_mass_g"),),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with self.assertRaisesRegex(
+                ValueError,
+                "Bindings are not written to PBIR yet",
+            ):
+                write_report(report, Path(temp_dir) / "out")
 
 
 def _read_json(path: Path) -> dict:
