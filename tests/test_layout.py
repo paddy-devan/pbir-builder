@@ -8,6 +8,7 @@ from pbir_builder import (
     GridNode,
     HStack,
     HStackNode,
+    LayoutDebugStyle,
     Padding,
     Report,
     VStack,
@@ -15,6 +16,7 @@ from pbir_builder import (
     Visual,
     VisualPlacement,
     apply_layout,
+    write_report,
 )
 
 
@@ -154,6 +156,56 @@ class LayoutContainerTests(unittest.TestCase):
         self.assertEqual(page.visuals[2].visual_type, "slicer")
         self.assertEqual(page.visuals[0].position.x, 28)
         self.assertEqual(page.visuals[2].position.y, 186.0)
+
+    def test_per_container_debug_adds_border_only_shape_for_that_container(self) -> None:
+        report = Report("Per Container Debug")
+        page = report.add_page("Overview", width=400, height=300)
+
+        row = page.add_hstack(10, frame=Frame(20, 30, 360, 120), debug=True)
+        row.add_card()
+        row.add_text_box("Summary")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            write_report(report, Path(temp_dir) / "out")
+
+        self.assertEqual(len(page.visuals), 3)
+        debug_visual = page.visuals[0]
+        self.assertEqual(debug_visual.visual_type, "shape")
+        self.assertEqual(debug_visual.position.x, 20)
+        self.assertEqual(debug_visual.position.width, 360)
+        debug_objects = debug_visual.general_formatting.to_visual_container_objects()
+        self.assertEqual(debug_objects["background"][0]["properties"]["show"]["expr"]["Literal"]["Value"], "false")
+        self.assertEqual(debug_objects["border"][0]["properties"]["show"]["expr"]["Literal"]["Value"], "true")
+        self.assertEqual(
+            debug_objects["border"][0]["properties"]["color"]["solid"]["color"]["expr"]["Literal"]["Value"],
+            "'#FF6A00'",
+        )
+
+    def test_global_layout_debug_adds_overlays_for_all_containers(self) -> None:
+        report = Report("Global Debug")
+        page = report.add_page("Overview", width=500, height=300)
+
+        outer = page.add_vstack(12, frame=Frame(20, 20, 460, 240))
+        top = outer.add_hstack(10)
+        bottom = outer.add_hstack(10)
+        top.add_card()
+        bottom.add_text_box("Bottom")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            write_report(
+                report,
+                Path(temp_dir) / "out",
+                layout_debug=True,
+                layout_debug_style=LayoutDebugStyle(border_color="#00A3FF"),
+            )
+
+        shape_visuals = [visual for visual in page.visuals if visual.visual_type == "shape"]
+        self.assertEqual(len(shape_visuals), 3)
+        border_colors = [
+            visual.general_formatting.to_visual_container_objects()["border"][0]["properties"]["color"]["solid"]["color"]["expr"]["Literal"]["Value"]
+            for visual in shape_visuals
+        ]
+        self.assertEqual(border_colors, ["'#00A3FF'", "'#00A3FF'", "'#00A3FF'"])
 
 
 if __name__ == "__main__":

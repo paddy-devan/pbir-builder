@@ -713,6 +713,7 @@ class Page:
         gap: float = 0,
         padding: Any = 0,
         *,
+        debug: bool = False,
         frame: Any = None,
         x: float = 0,
         y: float = 0,
@@ -725,6 +726,7 @@ class Page:
             self,
             gap=gap,
             padding=padding,
+            debug=debug,
             frame=frame,
             x=x,
             y=y,
@@ -737,6 +739,7 @@ class Page:
         gap: float = 0,
         padding: Any = 0,
         *,
+        debug: bool = False,
         frame: Any = None,
         x: float = 0,
         y: float = 0,
@@ -749,6 +752,7 @@ class Page:
             self,
             gap=gap,
             padding=padding,
+            debug=debug,
             frame=frame,
             x=x,
             y=y,
@@ -763,6 +767,7 @@ class Page:
         *,
         gap: float = 0,
         padding: Any = 0,
+        debug: bool = False,
         frame: Any = None,
         x: float = 0,
         y: float = 0,
@@ -777,6 +782,7 @@ class Page:
             columns=columns,
             gap=gap,
             padding=padding,
+            debug=debug,
             frame=frame,
             x=x,
             y=y,
@@ -1108,11 +1114,22 @@ class Report:
         return self.artifact_name or _artifact_name(self.display_name)
 
 
-def write_report(report: Report, output_dir: str | Path, *, overwrite: bool = False) -> Path:
+def write_report(
+    report: Report,
+    output_dir: str | Path,
+    *,
+    overwrite: bool = False,
+    layout_debug: bool = False,
+    layout_debug_style: Any = None,
+) -> Path:
     """Write a report as a PBIP project and return the project directory."""
     from .layout_authoring import materialize_report_layouts
 
-    materialize_report_layouts(report)
+    materialize_report_layouts(
+        report,
+        debug=layout_debug,
+        debug_style=layout_debug_style,
+    )
     _validate_report(report)
     output_path = Path(output_dir)
     if output_path.exists():

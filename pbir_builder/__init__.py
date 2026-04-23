@@ -6,6 +6,7 @@ from .layout import Frame, Grid, HStack, Padding, VStack
 from .layout_tree import (
     GridNode,
     HStackNode,
+    LayoutDebugStyle,
     LayoutNode,
     VStackNode,
     VisualPlacement,
@@ -52,6 +53,7 @@ __all__ = [
     "HStack",
     "HStackNode",
     "ImageVisual",
+    "LayoutDebugStyle",
     "LayoutNode",
     "LineChart",
     "Matrix",

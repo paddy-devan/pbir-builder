@@ -8,6 +8,7 @@ from .layout_tree import (
     ContainerNode,
     GridNode,
     HStackNode,
+    LayoutDebugStyle,
     VStackNode,
     VisualPlacement,
     apply_layout,
@@ -35,13 +36,25 @@ class LayoutContainerFacade:
         self._page = page
         self._node = node
 
-    def add_hstack(self, gap: float = 0, padding: "Padding | float" = 0) -> "LayoutContainerFacade":
-        node = HStackNode(gap=gap, padding=padding)
+    def add_hstack(
+        self,
+        gap: float = 0,
+        padding: "Padding | float" = 0,
+        *,
+        debug: bool = False,
+    ) -> "LayoutContainerFacade":
+        node = HStackNode(gap=gap, padding=padding, debug=debug)
         self._node.add(node)
         return LayoutContainerFacade(self._page, node)
 
-    def add_vstack(self, gap: float = 0, padding: "Padding | float" = 0) -> "LayoutContainerFacade":
-        node = VStackNode(gap=gap, padding=padding)
+    def add_vstack(
+        self,
+        gap: float = 0,
+        padding: "Padding | float" = 0,
+        *,
+        debug: bool = False,
+    ) -> "LayoutContainerFacade":
+        node = VStackNode(gap=gap, padding=padding, debug=debug)
         self._node.add(node)
         return LayoutContainerFacade(self._page, node)
 
@@ -52,8 +65,9 @@ class LayoutContainerFacade:
         *,
         gap: float = 0,
         padding: "Padding | float" = 0,
+        debug: bool = False,
     ) -> "LayoutContainerFacade":
-        node = GridNode(rows=rows, columns=columns, gap=gap, padding=padding)
+        node = GridNode(rows=rows, columns=columns, gap=gap, padding=padding, debug=debug)
         self._node.add(node)
         return LayoutContainerFacade(self._page, node)
 
@@ -98,6 +112,7 @@ def page_add_hstack(
     gap: float = 0,
     padding: "Padding | float" = 0,
     *,
+    debug: bool = False,
     frame: Frame | None = None,
     x: float = 0,
     y: float = 0,
@@ -106,7 +121,7 @@ def page_add_hstack(
 ) -> LayoutContainerFacade:
     return _add_root_container(
         page,
-        HStackNode(gap=gap, padding=padding),
+        HStackNode(gap=gap, padding=padding, debug=debug),
         frame=frame,
         x=x,
         y=y,
@@ -120,6 +135,7 @@ def page_add_vstack(
     gap: float = 0,
     padding: "Padding | float" = 0,
     *,
+    debug: bool = False,
     frame: Frame | None = None,
     x: float = 0,
     y: float = 0,
@@ -128,7 +144,7 @@ def page_add_vstack(
 ) -> LayoutContainerFacade:
     return _add_root_container(
         page,
-        VStackNode(gap=gap, padding=padding),
+        VStackNode(gap=gap, padding=padding, debug=debug),
         frame=frame,
         x=x,
         y=y,
@@ -144,6 +160,7 @@ def page_add_grid(
     *,
     gap: float = 0,
     padding: "Padding | float" = 0,
+    debug: bool = False,
     frame: Frame | None = None,
     x: float = 0,
     y: float = 0,
@@ -152,7 +169,7 @@ def page_add_grid(
 ) -> LayoutContainerFacade:
     return _add_root_container(
         page,
-        GridNode(rows=rows, columns=columns, gap=gap, padding=padding),
+        GridNode(rows=rows, columns=columns, gap=gap, padding=padding, debug=debug),
         frame=frame,
         x=x,
         y=y,
@@ -161,9 +178,14 @@ def page_add_grid(
     )
 
 
-def materialize_report_layouts(report: "Report") -> None:
+def materialize_report_layouts(
+    report: "Report",
+    *,
+    debug: bool = False,
+    debug_style: LayoutDebugStyle | None = None,
+) -> None:
     for page in report.pages:
-        _materialize_page_layouts(page)
+        _materialize_page_layouts(page, debug=debug, debug_style=debug_style)
 
 
 def _add_root_container(
@@ -186,7 +208,12 @@ def _add_root_container(
     return LayoutContainerFacade(page, node)
 
 
-def _materialize_page_layouts(page: "Page") -> None:
+def _materialize_page_layouts(
+    page: "Page",
+    *,
+    debug: bool = False,
+    debug_style: LayoutDebugStyle | None = None,
+) -> None:
     state = getattr(page, "_layout_state", None)
     if state is None:
         return
@@ -196,7 +223,7 @@ def _materialize_page_layouts(page: "Page") -> None:
     ]
     for root in state.roots:
         start_index = len(page.visuals)
-        apply_layout(page, root.node, root.frame)
+        apply_layout(page, root.node, root.frame, debug=debug, debug_style=debug_style)
         for visual in page.visuals[start_index:]:
             visual._from_layout_facade = True
 
