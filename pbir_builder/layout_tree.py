@@ -11,6 +11,7 @@ from .pbir import GeneralFormatting, Page, Visual
 @dataclass(frozen=True)
 class LayoutDebugStyle:
     border_color: str = "#FF6A00"
+    border_width: float = 4
     border_radius: float = 0
     shape_type: str = "rectangle"
 
@@ -164,16 +165,21 @@ def _coerce_padding(value: Padding | float) -> Padding:
 
 def _debug_shape(frame: Frame, debug_style: LayoutDebugStyle | None) -> Visual:
     style = debug_style or LayoutDebugStyle()
-    return Visual.shape(
+    visual = Visual.shape(
         frame.x,
         frame.y,
         frame.width,
         frame.height,
         shape_type=style.shape_type,
+        fill_show=False,
+        outline_show=False,
         general_formatting=GeneralFormatting(
             background_show=False,
             border_show=True,
             border_color=style.border_color,
+            border_width=style.border_width,
             border_radius=style.border_radius,
         ),
     )
+    visual._from_layout_debug = True
+    return visual

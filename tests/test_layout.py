@@ -169,16 +169,30 @@ class LayoutContainerTests(unittest.TestCase):
             write_report(report, Path(temp_dir) / "out")
 
         self.assertEqual(len(page.visuals), 3)
-        debug_visual = page.visuals[0]
+        debug_visuals = [visual for visual in page.visuals if getattr(visual, "_from_layout_debug", False)]
+        self.assertEqual(len(debug_visuals), 1)
+        debug_visual = debug_visuals[0]
         self.assertEqual(debug_visual.visual_type, "shape")
         self.assertEqual(debug_visual.position.x, 20)
         self.assertEqual(debug_visual.position.width, 360)
+        debug_shape_objects = debug_visual._visual_objects()
+        self.assertEqual(debug_shape_objects["fill"][0]["properties"]["show"]["expr"]["Literal"]["Value"], "false")
+        self.assertEqual(
+            debug_shape_objects["outline"][0]["properties"]["show"]["expr"]["Literal"]["Value"],
+            "false",
+        )
         debug_objects = debug_visual.general_formatting.to_visual_container_objects()
-        self.assertEqual(debug_objects["background"][0]["properties"]["show"]["expr"]["Literal"]["Value"], "false")
-        self.assertEqual(debug_objects["border"][0]["properties"]["show"]["expr"]["Literal"]["Value"], "true")
+        self.assertEqual(
+            debug_objects["background"][0]["properties"]["show"]["expr"]["Literal"]["Value"],
+            "false",
+        )
         self.assertEqual(
             debug_objects["border"][0]["properties"]["color"]["solid"]["color"]["expr"]["Literal"]["Value"],
             "'#FF6A00'",
+        )
+        self.assertEqual(
+            debug_objects["border"][0]["properties"]["width"]["expr"]["Literal"]["Value"],
+            "4D",
         )
 
     def test_global_layout_debug_adds_overlays_for_all_containers(self) -> None:
@@ -199,13 +213,20 @@ class LayoutContainerTests(unittest.TestCase):
                 layout_debug_style=LayoutDebugStyle(border_color="#00A3FF"),
             )
 
-        shape_visuals = [visual for visual in page.visuals if visual.visual_type == "shape"]
-        self.assertEqual(len(shape_visuals), 3)
-        border_colors = [
-            visual.general_formatting.to_visual_container_objects()["border"][0]["properties"]["color"]["solid"]["color"]["expr"]["Literal"]["Value"]
-            for visual in shape_visuals
+        debug_visuals = [visual for visual in page.visuals if getattr(visual, "_from_layout_debug", False)]
+        self.assertEqual(len(debug_visuals), 3)
+        border_objects = [
+            visual.general_formatting.to_visual_container_objects()["border"][0]["properties"]
+            for visual in debug_visuals
         ]
-        self.assertEqual(border_colors, ["'#00A3FF'", "'#00A3FF'", "'#00A3FF'"])
+        self.assertEqual(
+            [props["color"]["solid"]["color"]["expr"]["Literal"]["Value"] for props in border_objects],
+            ["'#00A3FF'"] * 3,
+        )
+        self.assertEqual(
+            [props["width"]["expr"]["Literal"]["Value"] for props in border_objects],
+            ["4D"] * 3,
+        )
 
 
 if __name__ == "__main__":

@@ -213,6 +213,7 @@ class GeneralFormatting:
     background_transparency: str | int | float | None = None
     border_show: bool | None = None
     border_color: str | None = None
+    border_width: str | int | float | None = None
     border_radius: str | int | float | None = None
 
     def to_visual_container_objects(self) -> dict[str, Any]:
@@ -290,6 +291,8 @@ class GeneralFormatting:
             properties["show"] = _bool_literal(self.border_show)
         if self.border_color is not None:
             properties["color"] = _solid_color(self.border_color)
+        if self.border_width is not None:
+            properties["width"] = _numeric_literal(self.border_width)
         if self.border_radius is not None:
             properties["radius"] = _numeric_literal(self.border_radius)
         return properties
@@ -463,6 +466,8 @@ class Visual:
         name: str | None = None,
         shape_type: str = "rectangleRounded",
         rotation: str | int | float = "0L",
+        fill_show: bool | None = None,
+        outline_show: bool | None = None,
         general_formatting: GeneralFormatting | None = None,
         z: int = 0,
         tab_order: int = 0,
@@ -473,6 +478,8 @@ class Visual:
             general_formatting=general_formatting or GeneralFormatting(),
             shape_type=shape_type,
             rotation=rotation,
+            fill_show=fill_show,
+            outline_show=outline_show,
         )
 
     @classmethod
@@ -622,9 +629,11 @@ class Shape(Visual):
     visual_type = "shape"
     shape_type: str = "rectangleRounded"
     rotation: str | int | float = "0L"
+    fill_show: bool | None = None
+    outline_show: bool | None = None
 
     def _visual_objects(self) -> dict[str, Any]:
-        return {
+        objects: dict[str, Any] = {
             "shape": [
                 {
                     "properties": {
@@ -640,6 +649,11 @@ class Shape(Visual):
                 }
             ],
         }
+        if self.fill_show is not None:
+            objects["fill"] = [{"properties": {"show": _bool_literal(self.fill_show)}}]
+        if self.outline_show is not None:
+            objects["outline"] = [{"properties": {"show": _bool_literal(self.outline_show)}}]
+        return objects
 
 
 @dataclass
@@ -992,6 +1006,8 @@ class Page:
         name: str | None = None,
         shape_type: str = "rectangleRounded",
         rotation: str | int | float = "0L",
+        fill_show: bool | None = None,
+        outline_show: bool | None = None,
         general_formatting: GeneralFormatting | None = None,
     ) -> Visual:
         return self.add_visual(
@@ -1003,6 +1019,8 @@ class Page:
                 name=name,
                 shape_type=shape_type,
                 rotation=rotation,
+                fill_show=fill_show,
+                outline_show=outline_show,
                 general_formatting=general_formatting,
                 z=len(self.visuals),
                 tab_order=len(self.visuals),
