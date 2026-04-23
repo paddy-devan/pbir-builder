@@ -2,6 +2,7 @@
 
 __version__ = "0.1.0"
 
+from .layout import Frame, Grid, HStack, Padding, VStack
 from .pbir import (
     BarChart,
     CartesianBinding,
@@ -35,11 +36,15 @@ __all__ = [
     "Card",
     "ClusteredColumnChart",
     "FieldRef",
+    "Frame",
     "GeneralFormatting",
+    "Grid",
+    "HStack",
     "ImageVisual",
     "LineChart",
     "Matrix",
     "MeasureRef",
+    "Padding",
     "Page",
     "Position",
     "Report",
@@ -51,6 +56,7 @@ __all__ = [
     "TabularBinding",
     "TextBox",
     "Visual",
+    "VStack",
     "VisualBinding",
     "write_report",
 ]
